@@ -1846,6 +1846,8 @@ class MQTTSubscribeService(StdService):
         elif (self.end_ts + self.min_loop_interval) > event.packet['dateTime']:
             self.logger.debug("Ignoring packet has dateTime of %f because minimum timespan of %f seconds has not elapsed yet."
                               %(event.packet['dateTime'], self.min_loop_interval))
+        elif ('rapidWindSpeed2' in event.packet):
+            self.logger.debug("Ignoring rapidWindSpeed2 packet")
         else:
             start_ts = self.end_ts
             self.end_ts = event.packet['dateTime']
