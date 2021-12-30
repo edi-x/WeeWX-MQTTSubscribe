@@ -73,6 +73,11 @@ Configuration:
     # Default is loop.
     # Only used by the service.
     binding = loop
+    
+    # Minimum interval between loop packets in seconds.
+    # MQTT data will only be added after this minimum timespan between handled loop packets.
+    # If a loop packet appears before this minimum timespan has elapsed the MQTT data will not be added to it.
+    min_loop_interval = 0    
 
     # When the MQTT queue has no data, the amount of time in seconds to wait
     # before checking again.
@@ -1803,6 +1808,8 @@ class MQTTSubscribeService(StdService):
             self.logger.info("Running as both a driver and a service.")
 
         self.binding = service_dict.get('binding', 'loop')
+        
+        self.min_loop_interval = to_int(service_dict.get('min_loop_interval', 0))
 
         if 'archive_topic' in service_dict:
             raise ValueError("archive_topic, %s, is invalid when running as a service" % service_dict['archive_topic'])
@@ -1836,6 +1843,9 @@ class MQTTSubscribeService(StdService):
         if self.end_ts > event.packet['dateTime']:
             self.logger.error("Ignoring packet has dateTime of %f which is prior to previous packet %f"
                               %(event.packet['dateTime'], self.end_ts))
+        elif (self.end_ts + self.min_loop_interval) > event.packet['dateTime']:
+            self.logger.debug("Ignoring packet has dateTime of %f because minimum timespan of %f seconds has not elapsed yet."
+                              %(event.packet['dateTime'], self.min_loop_interval))
         else:
             start_ts = self.end_ts
             self.end_ts = event.packet['dateTime']
